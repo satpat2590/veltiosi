@@ -1,0 +1,67 @@
+# Generation and safety rules
+generated_sections:
+  start_marker: "<!-- veltiosi:generated:start -->"
+  end_marker: "<!-- veltiosi:generated:end -->"
+  allowed_sections:
+    - "task_history"
+    - "cross_domain_insights"
+    - "slope"
+    - "index_entries"
+    - "moc_entries"
+    - "weekly_summary"
+    - "source_summary"
+  preserve_manual_content: true
+
+review_queue:
+  path: "20-Task-System/Review-Queue"
+  filename_format: "YYYYMMDD-HHMMSS-task-{task_id}-{slug}.md"
+  statuses:
+    - "pending"
+    - "approved"
+    - "denied"
+    - "modified"
+    - "resolved"
+  default_status: "pending"
+
+logging:
+  append_to_log_md: true
+  log_entry_format: "## [{date}] {type} | {description}"
+  write_audit_jsonl: true
+  audit_dir: "17-References/Veltiosi-Audit"
+  audit_filename_format: "YYYY-MM-DD.jsonl"
+
+ignored_paths:
+  - ".obsidian"
+  - ".git"
+  - "node_modules"
+  - "__pycache__"
+  - ".pytest_cache"
+  - ".ruff_cache"
+  - "*.tmp"
+  - "*.swp"
+  - "*.bak"
+
+lint:
+  orphan_threshold: 0
+  stale_days: 30
+  require_slope_for_types:
+    - "concept"
+    - "compounding_page"
+    - "synthesis"
+  require_category_for_all: true
+  max_orphan_suggestions: 10
+
+indexing:
+  index_filename: "index.md"
+  include_root_files: true
+  include_generated: false
+  group_by_domain: true
+  include_one_line_summary: true
+
+synthesis:
+  weekly_path: "01-Natural-Philosophy/Weekly Synthesis"
+  filename_format: "YYYY-WW Weekly Synthesis.md"
+  include_category_balance: true
+  include_top_pages: 5
+  include_gap_analysis: true
+  include_review_queue_summary: true

@@ -1,0 +1,49 @@
+# Canonical root categories
+roots:
+  physical:
+    display_name: Physical
+    moc_path: "14-Maps-of-Content/Physical MOC.md"
+    color: "#4CAF50"
+    description: "Physical health and fitness"
+  mental:
+    display_name: Mental
+    moc_path: "14-Maps-of-Content/Mental MOC.md"
+    color: "#2196F3"
+    description: "Cognitive development and learning"
+  financial:
+    display_name: Financial
+    moc_path: "14-Maps-of-Content/Financial MOC.md"
+    color: "#FF9800"
+    description: "Financial systems and wealth building"
+  social:
+    display_name: Social
+    moc_path: "14-Maps-of-Content/Social MOC.md"
+    color: "#9C27B0"
+    description: "Relationships and community"
+
+# Note types
+note_types:
+  concept:
+    description: "Core concept or entity page"
+    requires_slope: true
+  source_summary:
+    description: "Summary of a raw source"
+    requires_slope: false
+  compounding_page:
+    description: "Page that accumulates insights from related tasks"
+    requires_slope: true
+  synthesis:
+    description: "Periodic synthesis note"
+    requires_slope: true
+  moc:
+    description: "Map of Content"
+    requires_slope: false
+  task_linked:
+    description: "Note linked to a specific task"
+    requires_slope: false
+  reference:
+    description: "Reference material"
+    requires_slope: false
+  generated_index:
+    description: "Generated index or catalog"
+    requires_slope: false

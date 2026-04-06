@@ -1,0 +1,128 @@
+# Task mapping rules for Atma completions
+rules:
+  - id: exercise_rule
+    match_any:
+      - "work out"
+      - "gym"
+      - "exercise"
+      - "physical activity"
+    category: physical
+    subcategories: [health, exercise]
+    tags:
+      - "EXERCISE"
+      - "PHYSICAL"
+    target_page: "15-Daily-Notes/Health & Energy Tracking.md"
+    confidence: 0.9
+
+  - id: nutrition_rule
+    match_any:
+      - "calorie"
+      - "nutrition"
+      - "diet"
+      - "meal"
+    category: physical
+    subcategories: [health, nutrition]
+    tags:
+      - "NUTRITION"
+      - "PHYSICAL"
+    target_page: "15-Daily-Notes/Health & Energy Tracking.md"
+    confidence: 0.85
+
+  - id: poetry_rule
+    match_any:
+      - "poem"
+      - "poetry"
+      - "write poem"
+      - "poetic"
+    category: mental
+    subcategories: [poetry, language_learning]
+    tags:
+      - "POETRY"
+      - "CREATIVITY"
+      - "MENTAL"
+    target_page: "01-Natural-Philosophy/Poetry Practice.md"
+    confidence: 0.9
+
+  - id: language_learning_rule
+    match_any:
+      - "Japanese"
+      - "language"
+      - "learn language"
+      - "vocabulary"
+    category: mental
+    subcategories: [language_learning]
+    tags:
+      - "LANGUAGE_LEARNING"
+      - "LEARNING"
+      - "MENTAL"
+    target_page: "04-Language/Language Learning Index.md"
+    confidence: 0.8
+
+  - id: data_engineering_rule
+    match_any:
+      - "DWH"
+      - "data warehouse"
+      - "data engineering"
+      - "Regi"
+    category: financial
+    subcategories: [data_engineering]
+    tags:
+      - "DATA_ENGINEERING"
+      - "FINANCIAL"
+    target_page: "08-Edoras/Regi DWH Development.md"
+    confidence: 0.85
+
+  - id: ml_ops_rule
+    match_any:
+      - "model"
+      - "SLM"
+      - "7B"
+      - "ML"
+      - "machine learning"
+    category: mental
+    subcategories: [ml_ops]
+    tags:
+      - "ML_OPS"
+      - "TECHNICAL_SKILLS"
+      - "LEARNING"
+      - "MENTAL"
+    target_page: "05-Computation/Model Repository for SLMs.md"
+    confidence: 0.8
+
+  - id: relationships_rule
+    match_any:
+      - "Central Park"
+      - "Tanbubu"
+      - "quality time"
+      - "relationship"
+      - "social"
+    category: social
+    subcategories: [relationships]
+    tags:
+      - "RELATIONSHIPS"
+      - "SOCIAL"
+    target_page: "15-Daily-Notes/Relationships & Social Intelligence.md"
+    confidence: 0.9
+
+  - id: trading_systems_rule
+    match_any:
+      - "Regi"
+      - "trading"
+      - "portfolio"
+      - "Edoras"
+    category: financial
+    subcategories: [trading_systems]
+    tags:
+      - "TRADING_SYSTEMS"
+      - "FINANCIAL"
+    target_page: "08-Edoras/Trading Systems Index.md"
+    confidence: 0.8
+
+# Default fallback rule
+default_rule:
+  category: null
+  subcategories: []
+  tags: []
+  target_page: null
+  confidence: 0.0
+  requires_review: true

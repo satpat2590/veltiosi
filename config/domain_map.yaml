@@ -1,0 +1,80 @@
+# Domain folder to root category mapping
+domain_folders:
+  "01-Natural-Philosophy":
+    default_roots: [mental]
+    description: "Consciousness formation, cellular automata, bias emergence"
+  "02-Economics":
+    default_roots: [financial, mental]
+    description: "Power encoding in finance, structural bias analysis"
+  "03-Geopolitics":
+    default_roots: [mental, social]
+    description: "Systemic categorization of humanity, unjust power structures"
+  "04-Language":
+    default_roots: [mental, social]
+    description: "How categorization serves power, semantics as philosophical practice"
+  "05-Computation":
+    default_roots: [mental, financial]
+    description: "Substrates of consciousness, ML/AI systems"
+  "06-Research-Frameworks":
+    default_roots: [mental]
+    description: "Methodology, analytical tools, research frameworks"
+  "07-Poetry":
+    default_roots: [mental, social]
+    description: "Poetry as truth-telling, philosophical practice"
+  "08-Edoras":
+    default_roots: [financial]
+    description: "Trading system documentation"
+  "09-Argus":
+    default_roots: [financial]
+    description: "Portfolio management"
+  "10-Syntrofos":
+    default_roots: [mental, financial]
+    description: "Bonsai 8B companion workers"
+  "11-Skills":
+    default_roots: [mental]
+    description: "Hermes skills documentation"
+  "12-Archive":
+    default_roots: []
+    description: "Archived notes"
+  "13-Templates":
+    default_roots: []
+    description: "Note templates"
+  "14-Maps-of-Content":
+    default_roots: []
+    description: "MOCs connecting ideas across domains"
+  "15-Daily-Notes":
+    default_roots: [physical, social, mental]
+    description: "Daily journal and thinking"
+  "16-Meetings":
+    default_roots: [social]
+    description: "Meeting notes"
+  "17-References":
+    default_roots: []
+    description: "Reference material"
+  "18-Excalidraw":
+    default_roots: []
+    description: "Diagrams"
+  "19-Attachments":
+    default_roots: []
+    description: "Images, PDFs, files"
+  "20-Task-System":
+    default_roots: []
+    description: "Integrated task system with hierarchical tagging"
+
+# Root-level files
+root_files:
+  "SATYA.md":
+    roots: []
+    description: "Wiki schema"
+  "index.md":
+    roots: []
+    description: "Catalog of all wiki pages"
+  "log.md":
+    roots: []
+    description: "Chronological log of wiki activity"
+  "README.md":
+    roots: []
+    description: "Vault overview"
+  "Atma-Obsidian Wiki Integration Guide.md":
+    roots: []
+    description: "Integration guide"

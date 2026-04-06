@@ -1,0 +1,96 @@
+# LLM configuration
+provider: google
+model_policy:
+  primary_family: gemini
+  primary_model: "gemini-1.5-pro"
+  fallback_models: []
+  max_retries: 3
+
+timeouts:
+  request_seconds: 120
+  connect_seconds: 30
+
+generation:
+  temperature: 0.2
+  max_output_tokens: 8192
+  top_p: 0.95
+  top_k: 40
+
+prompts:
+  ingest:
+    system: |
+      You are a knowledge integration assistant for a personal wiki.
+      You will summarize a source and integrate it into the existing wiki structure.
+      Focus on extracting key takeaways, identifying contradictions with existing knowledge,
+      and suggesting connections to relevant concepts.
+    user_template: |
+      Source: {source_title}
+      Type: {source_type}
+      Content: {source_content}
+
+      Existing wiki context:
+      {wiki_context}
+
+      Please provide:
+      1. Key takeaways (3-5 bullet points)
+      2. Root categories and subcategories this relates to
+      3. Contradictions with existing knowledge
+      4. Questions raised
+      5. Suggested wiki pages to update or create
+
+  query:
+    system: |
+      You are a query assistant for a personal wiki.
+      Answer questions based on the provided wiki context.
+      Always cite specific wiki pages using [[Page Name]] notation.
+      If information is missing or uncertain, acknowledge the gap.
+    user_template: |
+      Question: {question}
+
+      Relevant wiki context:
+      {wiki_context}
+
+      Please provide a concise answer with citations.
+
+  synthesis:
+    system: |
+      You are a synthesis assistant for a personal wiki.
+      Analyze weekly activity and generate insights about knowledge growth.
+      Focus on slopes (rates of change), contradictions, and gaps.
+    user_template: |
+      Weekly activity:
+      - Completed tasks: {completed_tasks}
+      - Updated pages: {updated_pages}
+      - New sources: {new_sources}
+      - Category points: {category_points}
+
+      Please generate a weekly synthesis note.
+
+  classification:
+    system: |
+      You are a classification assistant for a personal wiki.
+      Classify notes into root categories and subcategories based on content.
+      Return only JSON with the specified structure.
+    user_template: |
+      Note title: {title}
+      Note content: {content}
+      Domain folder: {domain_folder}
+
+      Classify this note into:
+      - primary_root_category (physical, mental, financial, social, or null)
+      - secondary_root_categories (list)
+      - subcategories (list from known subcategories)
+      - note_type (concept, source_summary, compounding_page, synthesis, moc, task_linked, reference, generated_index)
+
+      Return JSON only.
+
+  contradiction_detection:
+    system: |
+      You are a contradiction detection assistant for a personal wiki.
+      Identify conflicting claims across different pages.
+      Be precise and cite specific statements.
+    user_template: |
+      Page A: {page_a_content}
+      Page B: {page_b_content}
+
+      Identify any contradictions between these pages.

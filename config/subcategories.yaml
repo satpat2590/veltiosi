@@ -1,0 +1,88 @@
+# Subcategories within root categories
+subcategories:
+  health:
+    display_name: Health
+    primary_root: physical
+    moc_path: "14-Maps-of-Content/Health MOC.md"
+    local_index_path: "15-Daily-Notes/Health Index.md"
+    domain_folders:
+      - "15-Daily-Notes"
+    description: "Physical health, energy, and wellness"
+  exercise:
+    display_name: Exercise
+    primary_root: physical
+    moc_path: "14-Maps-of-Content/Exercise MOC.md"
+    local_index_path: "15-Daily-Notes/Exercise Index.md"
+    domain_folders:
+      - "15-Daily-Notes"
+    description: "Physical exercise and fitness"
+  nutrition:
+    display_name: Nutrition
+    primary_root: physical
+    moc_path: "14-Maps-of-Content/Nutrition MOC.md"
+    local_index_path: "15-Daily-Notes/Nutrition Index.md"
+    domain_folders:
+      - "15-Daily-Notes"
+    description: "Nutrition and diet"
+  relationships:
+    display_name: Relationships
+    primary_root: social
+    moc_path: "14-Maps-of-Content/Relationships MOC.md"
+    local_index_path: "15-Daily-Notes/Relationships Index.md"
+    domain_folders:
+      - "15-Daily-Notes"
+    description: "Personal relationships and social connections"
+  language_learning:
+    display_name: Language Learning
+    primary_root: mental
+    moc_path: "14-Maps-of-Content/Language Learning MOC.md"
+    local_index_path: "04-Language/Language Learning Index.md"
+    domain_folders:
+      - "04-Language"
+      - "07-Poetry"
+    description: "Language acquisition and practice"
+  poetry:
+    display_name: Poetry
+    primary_root: mental
+    moc_path: "14-Maps-of-Content/Poetry MOC.md"
+    local_index_path: "07-Poetry/Poetry Index.md"
+    domain_folders:
+      - "07-Poetry"
+      - "04-Language"
+    description: "Poetry as philosophical practice"
+  research:
+    display_name: Research
+    primary_root: mental
+    moc_path: "14-Maps-of-Content/Research MOC.md"
+    local_index_path: "06-Research-Frameworks/Research Index.md"
+    domain_folders:
+      - "06-Research-Frameworks"
+      - "01-Natural-Philosophy"
+    description: "Research methodology and frameworks"
+  trading_systems:
+    display_name: Trading Systems
+    primary_root: financial
+    moc_path: "14-Maps-of-Content/Trading Systems MOC.md"
+    local_index_path: "08-Edoras/Trading Systems Index.md"
+    domain_folders:
+      - "08-Edoras"
+      - "02-Economics"
+    description: "Trading systems and algorithms"
+  data_engineering:
+    display_name: Data Engineering
+    primary_root: financial
+    moc_path: "14-Maps-of-Content/Data Engineering MOC.md"
+    local_index_path: "08-Edoras/Data Engineering Index.md"
+    domain_folders:
+      - "08-Edoras"
+      - "02-Economics"
+    description: "Data engineering and warehouse development"
+  ml_ops:
+    display_name: ML Ops
+    primary_root: mental
+    moc_path: "14-Maps-of-Content/ML Ops MOC.md"
+    local_index_path: "05-Computation/ML Ops Index.md"
+    domain_folders:
+      - "05-Computation"
+      - "10-Syntrofos"
+    description: "Machine learning operations and model management"
