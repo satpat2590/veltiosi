@@ -151,11 +151,17 @@ def wiki_ingest(
             dry_run=dry_run,
         )
 
+        if "error" in result:
+            console.print(f"[red]✗ {result['error']}[/red]")
+            raise typer.Exit(1)
+
         console.print(f"[green]✓ Ingest operation completed[/green]")
         console.print(f"  Source: {result.get('source_title')}")
         console.print(f"  Summary note: {result.get('summary_note_path')}")
         console.print(f"  Pages to update: {len(result.get('pages_to_update', []))}")
 
+    except typer.Exit:
+        raise
     except Exception as e:
         console.print(f"[red]✗ Error: {e}[/red]")
         raise typer.Exit(1)
@@ -321,6 +327,145 @@ def status() -> None:
         console.print("[green]✓ Vault exists[/green]")
     else:
         console.print("[red]✗ Vault not found[/red]")
+
+
+@app.command()
+def hermes_setup() -> None:
+    """Set up Hermes integration."""
+    from veltiosi.connectors.hermes import HermesConnector
+
+    console.print("[bold]Setting up Hermes integration[/bold]")
+
+    try:
+        connector = HermesConnector()
+
+        # Test Hermes connection
+        test_results = connector.test_integration()
+
+        console.print(f"Hermes home: {connector.hermes_home}")
+        console.print(f"Hermes home exists: {'✓' if test_results['hermes_home_exists'] else '✗'}")
+        console.print(
+            f"Skills directory exists: {'✓' if test_results['skills_dir_exists'] else '✗'}"
+        )
+        console.print(
+            f"Profiles directory exists: {'✓' if test_results['profiles_dir_exists'] else '✗'}"
+        )
+
+        if test_results["hermes_home_exists"]:
+            console.print(f"Available skills: {len(test_results['available_skills'])}")
+            console.print(f"Active profile: {test_results['active_profile'] or 'None'}")
+            console.print(
+                f"Veltiosi skill registered: {'✓' if test_results['veltiosi_skill_registered'] else '✗'}"
+            )
+
+            # Register Veltiosi skill if not already registered
+            if not test_results["veltiosi_skill_registered"]:
+                console.print("\n[yellow]Registering Veltiosi as Hermes skill...[/yellow]")
+                if connector.register_veltiosi_skill():
+                    console.print("[green]✓ Veltiosi skill registered[/green]")
+                else:
+                    console.print("[red]✗ Failed to register Veltiosi skill[/red]")
+
+            # Create Veltiosi profile
+            console.print("\n[yellow]Creating Veltiosi profile...[/yellow]")
+            if connector.create_veltiosi_profile():
+                console.print("[green]✓ Veltiosi profile created[/green]")
+            else:
+                console.print("[red]✗ Failed to create Veltiosi profile[/red]")
+
+            # Setup cron jobs
+            console.print("\n[yellow]Setting up cron jobs...[/yellow]")
+            if connector.setup_cron_jobs():
+                console.print("[green]✓ Cron jobs configured[/green]")
+            else:
+                console.print("[yellow]⚠ Cron jobs setup skipped (may need manual setup)[/yellow]")
+
+            console.print("\n[bold]Hermes integration complete![/bold]")
+            console.print("You can now use Veltiosi through Hermes with:")
+            console.print("  hermes veltiosi <command> [args]")
+
+        else:
+            console.print("\n[yellow]Hermes not found at: {connector.hermes_home}[/yellow]")
+            console.print("Please install Hermes or set HERMES_HOME environment variable")
+
+    except Exception as e:
+        console.print(f"[red]✗ Hermes setup failed: {e}[/red]")
+        raise typer.Exit(1)
+
+
+@app.command()
+def hermes_status() -> None:
+    """Check Hermes integration status."""
+    from veltiosi.connectors.hermes import HermesConnector
+
+    console.print("[bold]Hermes Integration Status[/bold]")
+
+    try:
+        connector = HermesConnector()
+        test_results = connector.test_integration()
+
+        # Create status table
+        from rich.table import Table
+
+        table = Table(title="Hermes Integration")
+        table.add_column("Component", style="bold")
+        table.add_column("Status", style="bold")
+        table.add_column("Details")
+
+        table.add_row(
+            "Hermes Home",
+            "✓" if test_results["hermes_home_exists"] else "✗",
+            str(connector.hermes_home),
+        )
+
+        table.add_row(
+            "Skills Directory",
+            "✓" if test_results["skills_dir_exists"] else "✗",
+            str(connector.skills_dir),
+        )
+
+        table.add_row(
+            "Profiles Directory",
+            "✓" if test_results["profiles_dir_exists"] else "✗",
+            str(connector.profiles_dir),
+        )
+
+        if test_results["hermes_home_exists"]:
+            table.add_row(
+                "Available Skills",
+                str(len(test_results["available_skills"])),
+                ", ".join(test_results["available_skills"][:5])
+                + ("..." if len(test_results["available_skills"]) > 5 else ""),
+            )
+
+            table.add_row(
+                "Active Profile",
+                test_results["active_profile"] or "None",
+                test_results["active_profile"] or "No active profile",
+            )
+
+            table.add_row(
+                "Veltiosi Skill",
+                "✓" if test_results["veltiosi_skill_registered"] else "✗",
+                "Registered" if test_results["veltiosi_skill_registered"] else "Not registered",
+            )
+
+        console.print(table)
+
+        # Recommendations
+        if not test_results["hermes_home_exists"]:
+            console.print("\n[yellow]Recommendations:[/yellow]")
+            console.print("1. Install Hermes Agent")
+            console.print("2. Set HERMES_HOME environment variable")
+            console.print("3. Run 'veltiosi hermes-setup'")
+
+        elif not test_results["veltiosi_skill_registered"]:
+            console.print("\n[yellow]Recommendations:[/yellow]")
+            console.print("Run 'veltiosi hermes-setup' to register Veltiosi skill")
+
+    except Exception as e:
+        console.print(f"[red]✗ Failed to check Hermes status: {e}[/red]")
+        raise typer.Exit(1)
 
 
 if __name__ == "__main__":

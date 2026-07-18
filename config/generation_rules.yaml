@@ -43,11 +43,29 @@ ignored_paths:
 
 lint:
   orphan_threshold: 0
-  stale_days: 30
-  require_slope_for_types:
-    - "concept"
-    - "compounding_page"
-    - "synthesis"
+  weak_link_threshold: 1
+  stale_days: 90
+  note_types:
+    concept:
+      requires_slope: true
+    source_summary:
+      requires_slope: false
+    compounding_page:
+      requires_slope: true
+    synthesis:
+      requires_slope: true
+    moc:
+      requires_slope: false
+    task_linked:
+      requires_slope: false
+    reference:
+      requires_slope: false
+    generated_index:
+      requires_slope: false
+  orphan_exempt_folders:
+    - "14-Maps-of-Content"
+    - "20-Task-System"
+    - "17-References"
   require_category_for_all: true
   max_orphan_suggestions: 10
 
