@@ -26,19 +26,25 @@ Veltiosi maintains a sustainable, compounding wiki in `~/Obsidian` by:
 
 ## Current Status (2026-04-06)
 
+✅ **MVP Complete**: All core workflows implemented with modular architecture  
 ✅ **Milestone A**: Bootstrap & Configuration - Complete  
 ✅ **Milestone B**: Core Utilities & Connectors - Complete  
 ✅ **Milestone C**: Indexing & Classification - Complete  
-🔜 **Milestone D**: Lint & Governance - Next  
+✅ **Milestone D**: Workflow Modules & LLM Integration - Complete  
 
 **Implemented Features**:
-- Vault scanning and note classification
-- Backlink analysis and graph building
-- Root category and subcategory index generation
-- Dual-index strategy (central MOCs + local domain indexes)
-- Audit logging with run tracking
-- CLI interface with 8 commands
-- Configuration system with YAML files
+- **Core Infrastructure**: Vault scanning, note classification, backlink analysis
+- **Shared Services**: Wiki repository, retrieval, source loading, LLM service with fallback
+- **Workflow Modules**: 
+  - `wiki_query`: Natural language querying with citations
+  - `wiki_ingest`: Source processing with LLM summarization
+  - `weekly_synthesis`: Activity analysis and insight generation
+  - `task_sync`: Task completion synchronization (updated)
+  - `wiki_index`: Index generation (existing)
+  - `wiki_lint`: Lint and governance (existing)
+- **LLM Integration**: Google Gemini as primary, configurable fallback, mock provider for testing
+- **Testing**: Comprehensive test suite with pytest fixtures
+- **Configuration**: Modular YAML configs with environment variable support
 
 ## Installation
 
@@ -77,33 +83,71 @@ veltiosi wiki-index                    # Generate/update all indexes
 veltiosi wiki-index --check            # Check consistency without writing
 veltiosi wiki-index --dry-run          # Show what would be done
 
+# Lint & Governance
+veltiosi wiki-lint                     # Lint for health and consistency
+
+# Source Processing
+veltiosi wiki-ingest <source> [--type article|paper|book|podcast|video|data|receipt]
+veltiosi wiki-ingest article.txt --type article --dry-run  # Preview without writing
+
+# Task Synchronization
+veltiosi task-sync --days 7            # Sync Atma task completions
+veltiosi task-sync --task-id 123       # Sync specific task
+
+# Weekly Synthesis
+veltiosi weekly-synthesis              # Generate weekly synthesis
+veltiosi weekly-synthesis --weeks 4 --retrospective  # Generate multiple weeks
+
+# Wiki Querying
+veltiosi wiki-query "question"         # Query wiki with citations
+veltiosi wiki-query --interactive      # Interactive query mode
+
 # System Information
 veltiosi status                        # Show system status
 veltiosi config-show                   # Show current configuration
-
-# Coming Soon
-veltiosi wiki-lint                     # Lint for health and consistency
-veltiosi wiki-ingest <path_or_url>     # Ingest raw source
-veltiosi task-sync --days 7            # Sync Atma task completions
-veltiosi weekly-synthesis              # Generate weekly synthesis
-veltiosi wiki-query "question"         # Query wiki with citations
 ```
 
-### Example Workflow
+### Example Workflows
 
+**Basic Maintenance:**
 ```bash
-# 1. Check current vault state
+# 1. Check vault health
 veltiosi status
+veltiosi wiki-lint
 
-# 2. Run consistency check
-veltiosi wiki-index --check
-
-# 3. Generate indexes (dry run first)
+# 2. Update indexes
 veltiosi wiki-index --dry-run
 veltiosi wiki-index
 
-# 4. Check generated indexes
-ls ~/Obsidian/14-Maps-of-Content/
+# 3. Sync recent tasks
+veltiosi task-sync --days 7 --dry-run
+veltiosi task-sync --days 7
+```
+
+**Knowledge Processing:**
+```bash
+# 1. Ingest a source
+veltiosi wiki-ingest article.pdf --type article
+veltiosi wiki-ingest https://example.com/article --type article --dry-run
+
+# 2. Query your knowledge
+veltiosi wiki-query "What have I learned about machine learning?"
+veltiosi wiki-query --interactive
+
+# 3. Generate weekly insights
+veltiosi weekly-synthesis
+veltiosi weekly-synthesis --weeks 4 --retrospective
+```
+
+**Development & Testing:**
+```bash
+# Run test suite
+./run_tests.py
+./run_tests.py --coverage
+./run_tests.py --test tests/test_services.py --verbose
+
+# Test LLM integration (without API key)
+python -c "from src.veltiosi.services.llm_service import MockProvider; p = MockProvider(); print(p.generate_content('test'))"
 ```
 
 ## Project Structure
@@ -128,20 +172,35 @@ veltiosi/
 │   │   ├── atma.py        # Atma tasks
 │   │   ├── gemini.py      # Google Gemini
 │   │   └── hermes.py      # Hermes integration
+│   ├── services/          # Shared services
+│   │   ├── wiki_repository.py  # Vault access abstraction
+│   │   ├── retrieval.py        # Note retrieval and ranking
+│   │   ├── source_loader.py    # Source loading and parsing
+│   │   └── llm_service.py      # LLM with fallback support
 │   ├── indexing/          # Indexing & classification
 │   │   ├── scanner.py    # Vault scanner
 │   │   ├── classifier.py # Note classifier
 │   │   ├── backlinks.py  # Backlink analysis
 │   │   └── index_builder.py # Index builder
 │   ├── workflows/        # Workflow orchestration
-│   │   └── wiki_index.py # Indexing workflow
+│   │   ├── wiki_index.py # Indexing workflow
+│   │   ├── wiki_lint.py  # Lint and governance
+│   │   ├── wiki_ingest.py # Source ingestion
+│   │   ├── wiki_query.py  # Natural language querying
+│   │   ├── weekly_synthesis.py # Weekly insights
+│   │   └── task_sync.py  # Task synchronization
 │   └── utils/           # Utility modules
 │       ├── dates.py     # Date utilities
 │       ├── markdown.py  # Markdown utilities
 │       ├── text.py      # Text processing
 │       └── ids.py       # ID generation
+├── tests/              # Test suite
+│   ├── conftest.py     # Pytest fixtures
+│   ├── test_services.py # Service layer tests
+│   └── test_workflows.py # Workflow tests
 ├── implementation/
 │   └── progression.md   # Implementation tracker
+├── run_tests.py        # Test runner script
 ├── pyproject.toml       # Python project config
 ├── README.md           # This file
 └── .env.example        # Environment template
@@ -159,11 +218,13 @@ veltiosi/
 - **Generated status**: Manual, Generated, Mixed (tracking of AI-generated content)
 - **Slope sections**: Notes can have "slope" sections for tracking progress
 
-### Safety Rules
-- Every mutating command supports `--dry-run`
-- Ambiguous task mappings go to review queue (never auto-apply)
-- No silent overwrite of manually curated prose
-- Idempotency required for cron-safe operation
+### Architecture Principles
+- **Modular Services**: Shared service layer for consistent vault access
+- **LLM Fallback**: Google Gemini primary, configurable fallback, mock provider for testing
+- **Dry-run Safety**: Every mutating command supports `--dry-run`
+- **Review Queue**: Ambiguous task mappings go to review queue (never auto-apply)
+- **Idempotency**: Cron-safe operation with no side effects on re-run
+- **Test Coverage**: Comprehensive test suite with fixtures and mocks
 
 ## Development
 
@@ -175,11 +236,18 @@ pip install -e ".[dev]"
 ruff check src/
 black src/
 
-# Run tests (when available)
-pytest tests/
+# Run tests
+./run_tests.py
+./run_tests.py --coverage
+./run_tests.py --test tests/test_services.py --verbose
+
+# Test LLM service
+python -c "from src.veltiosi.services.llm_service import llm_service; print(llm_service.test_all_connections())"
 
 # Run specific workflow
-python -m veltiosi.cli wiki-index --check
+python -m src.veltiosi.workflows.wiki_query --interactive
+python -m src.veltiosi.workflows.wiki_ingest test.txt --dry-run
+python -m src.veltiosi.workflows.weekly_synthesis --dry-run
 ```
 
 ## License

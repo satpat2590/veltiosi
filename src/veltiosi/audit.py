@@ -178,8 +178,13 @@ class AuditLogger:
         try:
             item_file = self.review_queue_dir / f"{queue_id}.json"
 
+            def _default(obj):
+                if isinstance(obj, datetime):
+                    return obj.isoformat()
+                raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+
             with open(item_file, "w") as f:
-                json.dump(item.model_dump(), f, indent=2)
+                json.dump(item.model_dump(), f, indent=2, default=_default)
 
             logger.info(f"Added to review queue: {queue_id} (task {task_id})")
             return queue_id

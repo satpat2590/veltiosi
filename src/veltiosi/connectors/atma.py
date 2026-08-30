@@ -2,7 +2,7 @@
 
 import json
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 import requests
@@ -18,6 +18,7 @@ class AtmaTask(BaseModel):
     """Atma task model."""
 
     id: int
+    completion_id: Optional[int] = None
     title: str
     description: Optional[str] = None
     status: str
@@ -47,56 +48,70 @@ class AtmaConnector:
     def get_recent_tasks(
         self, days_back: int = 7, status: str = "completed", limit: int = 50
     ) -> List[AtmaTask]:
-        """Get recent tasks from Atma."""
+        """Get recent completed tasks from Atma via the /api/completed endpoint."""
         if not self.base_url:
             logger.error("Atma base URL not configured")
             return []
 
         try:
-            cutoff_date = datetime.now() - timedelta(days=days_back)
+            cutoff_date = datetime.now(timezone.utc) - timedelta(days=days_back)
 
             params = {
-                "status": status,
                 "since": cutoff_date.isoformat(),
                 "limit": limit,
-                "order_by": "completed_at",
-                "order_dir": "desc",
             }
 
-            response = self.session.get(f"{self.base_url}/api/tasks", params=params, timeout=30)
+            response = self.session.get(f"{self.base_url}/api/completed", params=params, timeout=30)
             response.raise_for_status()
 
-            tasks_data = response.json()
+            completions_data = response.json()
             tasks = []
 
-            for task_data in tasks_data.get("tasks", []):
+            # Handle both list response and dict with "completions" key
+            if isinstance(completions_data, list):
+                completion_list = completions_data
+            else:
+                completion_list = completions_data.get("completions", [])
+
+            for completion_data in completion_list:
                 try:
+                    # Map completion record to AtmaTask model
+                    completed_at_str = completion_data.get("completed_at")
+                    completed_at = datetime.fromisoformat(completed_at_str.replace("Z", "+00:00")) if completed_at_str else None
+
+                    # Client-side filtering: skip completions older than cutoff
+                    if completed_at and completed_at < cutoff_date:
+                        continue
+
                     task = AtmaTask(
-                        id=task_data["id"],
-                        title=task_data["title"],
-                        description=task_data.get("description"),
-                        status=task_data["status"],
-                        priority=task_data.get("priority"),
-                        tags=task_data.get("tags", []),
-                        created_at=datetime.fromisoformat(task_data["created_at"]),
-                        completed_at=datetime.fromisoformat(task_data["completed_at"])
-                        if task_data.get("completed_at")
-                        else None,
-                        due_date=datetime.fromisoformat(task_data["due_date"])
-                        if task_data.get("due_date")
-                        else None,
-                        metadata=task_data.get("metadata", {}),
+                        id=completion_data["task_id"],
+                        completion_id=completion_data["id"],
+                        title=completion_data.get("task_title", "Unknown"),
+                        description=None,
+                        status="completed",
+                        priority=None,
+                        tags=[],
+                        created_at=completed_at or datetime.now(),
+                        completed_at=completed_at,
+                        due_date=None,
+                        metadata={
+                            "category": completion_data.get("task_category"),
+                            "was_late": completion_data.get("was_late"),
+                            "time_spent_minutes": completion_data.get("time_spent_minutes"),
+                            "points": completion_data.get("points"),
+                            "completion_notes": completion_data.get("notes"),
+                        },
                     )
                     tasks.append(task)
                 except (KeyError, ValueError) as e:
-                    logger.warning(f"Failed to parse task {task_data.get('id')}: {e}")
+                    logger.warning(f"Failed to parse completion {completion_data.get('id')}: {e}")
                     continue
 
-            logger.info(f"Retrieved {len(tasks)} tasks from Atma")
+            logger.info(f"Retrieved {len(tasks)} completed tasks from Atma")
             return tasks
 
         except requests.RequestException as e:
-            logger.error(f"Failed to fetch tasks from Atma: {e}")
+            logger.error(f"Failed to fetch completed tasks from Atma: {e}")
             return []
 
     def map_task_to_wiki(
@@ -166,42 +181,46 @@ class AtmaConnector:
         return results
 
     def mark_task_as_processed(
-        self, task_id: int, mapping_result: TaskMappingResult, note_path: Optional[str] = None
+        self, task: AtmaTask, mapping_result: TaskMappingResult, note_path: Optional[str] = None
     ) -> bool:
-        """Mark a task as processed in Atma."""
+        """Mark a task completion as processed in Atma by updating completion notes."""
         if not self.base_url:
             logger.warning("Atma base URL not configured, skipping task update")
             return False
 
-        try:
-            update_data = {
-                "metadata": {
-                    "veltiosi_processed": True,
-                    "veltiosi_processed_at": datetime.now().isoformat(),
-                    "veltiosi_mapping": {
-                        "confidence": mapping_result["confidence"],
-                        "category": mapping_result["category"],
-                        "subcategories": mapping_result["subcategories"],
-                        "tags": mapping_result["tags"],
-                        "target_page": mapping_result["target_page"],
-                        "decision": mapping_result["decision"],
-                    },
-                }
-            }
+        if not task.completion_id:
+            logger.warning(f"Task {task.id} has no completion_id, cannot mark as processed")
+            return False
 
+        try:
+            # Build sync annotation to append to existing notes
+            existing_notes = task.metadata.get("completion_notes", "") or ""
+
+            # Idempotency: skip if already marked as processed by veltiosi
+            if "[veltiosi-synced" in existing_notes:
+                logger.info(f"Task {task.id} (completion {task.completion_id}) already marked as processed")
+                return True
+
+            sync_note = f"\n[veltiosi-synced {datetime.now().isoformat()}]"
+            if mapping_result.get("category"):
+                sync_note += f" category={mapping_result['category']}"
             if note_path:
-                update_data["metadata"]["veltiosi_note_path"] = note_path
+                sync_note += f" note={note_path}"
+
+            new_notes = existing_notes + sync_note
+
+            update_data = {"notes": new_notes}
 
             response = self.session.patch(
-                f"{self.base_url}/api/tasks/{task_id}", json=update_data, timeout=30
+                f"{self.base_url}/api/completed/{task.completion_id}", json=update_data, timeout=30
             )
             response.raise_for_status()
 
-            logger.info(f"Marked task {task_id} as processed")
+            logger.info(f"Marked task {task.id} (completion {task.completion_id}) as processed")
             return True
 
         except requests.RequestException as e:
-            logger.error(f"Failed to mark task {task_id} as processed: {e}")
+            logger.error(f"Failed to mark task {task.id} as processed: {e}")
             return False
 
     def test_connection(self) -> bool:

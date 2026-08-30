@@ -176,24 +176,24 @@ class HermesConnector:
             return None
 
     def register_veltiosi_skill(self) -> bool:
-        """Register Veltiosi as a Hermes skill."""
-        skill_template = '''"""Veltiosi - Obsidian automation layer for Hermes."""
+        """Register Veltiosi as a Hermes skill (circular-import safe)."""
+        skill_template = '''#!/usr/bin/env python3
+"""Veltiosi - Obsidian automation layer for Hermes."""
 
 import argparse
 import sys
-from pathlib import Path
 
-# Add veltiosi to path
-veltiosi_path = Path.home() / "veltiosi"
-if str(veltiosi_path) not in sys.path:
-    sys.path.insert(0, str(veltiosi_path))
-
-from src.veltiosi.cli import app
-
+# Lazy import to avoid circular imports
+def get_app():
+    """Lazy import of Veltiosi CLI app."""
+    from veltiosi.cli import app
+    return app
 
 def main():
     """Main entry point for Veltiosi Hermes skill."""
-    parser = argparse.ArgumentParser(description="Veltiosi - Obsidian automation layer")
+    parser = argparse.ArgumentParser(
+        description="Veltiosi - Obsidian automation layer"
+    )
     parser.add_argument("command", nargs="?", help="Veltiosi command to run")
     parser.add_argument("args", nargs=argparse.REMAINDER, help="Command arguments")
     
@@ -206,15 +206,15 @@ def main():
         # Show help
         sys.argv = ["veltiosi", "--help"]
     
+    # Get app via lazy import
+    app = get_app()
     app()
 
-
 if __name__ == "__main__":
-    main()
-'''
+    main()'''
 
         try:
-            skill_file = self.skills_dir / "veltiosi.py"
+            skill_file = self.skills_dir / "veltiosi_hermes.py"  # CHANGED NAME
 
             # Create skills directory if it doesn't exist
             self.skills_dir.mkdir(parents=True, exist_ok=True)
@@ -242,7 +242,7 @@ if __name__ == "__main__":
         profile_config = {
             "name": profile_name,
             "description": "Profile with Veltiosi Obsidian automation integration",
-            "skills": ["veltiosi"],
+            "skills": ["veltiosi_hermes"],
             "environment": {
                 "VELTIOSI_OBSIDIAN_VAULT": str(settings.obsidian_vault),
                 "VELTIOSI_AUDIT_DIR": str(settings.audit_dir) if settings.audit_dir else "",
@@ -293,7 +293,7 @@ for key, value in env_vars.items():
     if value:
         os.environ[key] = value
 
-print(f"Activated Veltiosi profile: {profile_name}")
+print("Activated Veltiosi profile: {profile_name}")
 print("Environment variables set:")
 for key in env_vars.keys():
     if os.environ.get(key):
@@ -302,6 +302,7 @@ for key in env_vars.keys():
         print(f"  {key}: [not set]")
 '''.format(
                 obsidian_vault=str(settings.obsidian_vault),
+                profile_name=profile_name,
                 audit_dir=str(settings.audit_dir) if settings.audit_dir else "",
                 google_api_key=settings.google_api_key or "",
                 atma_base_url=settings.atma_base_url or "",

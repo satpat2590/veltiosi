@@ -1,8 +1,16 @@
 # LLM configuration
 provider: google
 model_policy:
-  primary_family: gemini
-  primary_model: "gemini-1.5-pro"
+  default: "gemini-2.0-flash-exp"
+  task_map:
+    default: "gemini-2.0-flash-exp"
+    ingest: "gemini-1.5-pro"
+    query: "gemini-1.5-pro"
+    synthesis: "gemini-1.5-pro"
+    classification: "gemini-2.0-flash-exp"
+    contradiction_detection: "gemini-1.5-pro"
+    index_generation: "gemini-2.0-flash-exp"
+    task_analysis: "gemini-2.0-flash-exp"
   fallback_models: []
   max_retries: 3
 
@@ -11,8 +19,8 @@ timeouts:
   connect_seconds: 30
 
 generation:
-  temperature: 0.2
-  max_output_tokens: 8192
+  temperature: 0.7
+  max_tokens: 2048
   top_p: 0.95
   top_k: 40
 
@@ -94,3 +102,35 @@ prompts:
       Page B: {page_b_content}
 
       Identify any contradictions between these pages.
+
+  index_generation:
+    moc:
+      template: |
+        Generate a Map of Content (MOC) for category: {category}
+        
+        Notes to organize:
+        {notes_context}
+        
+        Create a well-structured MOC with:
+        1. Introduction explaining the category scope
+        2. Organized sections by subcategory
+        3. Brief descriptions of key concepts
+        4. Cross-references to related categories
+        5. Action items or next steps
+
+  task_analysis:
+    template: |
+      Analyze this task for wiki integration:
+      
+      {task}
+      
+      Existing related notes:
+      {existing_notes}
+      
+      Provide JSON analysis with:
+      - recommended_action: "create_new", "update_existing", "skip"
+      - target_page: suggested page title
+      - category: primary category
+      - subcategories: list of relevant subcategories
+      - confidence: 0.0 to 1.0
+      - reasoning: brief explanation
