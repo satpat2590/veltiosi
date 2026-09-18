@@ -209,6 +209,8 @@ class WikiIngestWorkflow:
             "mental": RootCategory.MENTAL,
             "financial": RootCategory.FINANCIAL,
             "social": RootCategory.SOCIAL,
+            "history": RootCategory.HISTORY,
+            "nature": RootCategory.NATURE,
         }
 
         for name, category in root_category_map.items():

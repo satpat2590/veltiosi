@@ -15,6 +15,8 @@ class RootCategory(str, Enum):
     MENTAL = "mental"
     FINANCIAL = "financial"
     SOCIAL = "social"
+    HISTORY = "history"
+    NATURE = "nature"
 
 
 class NoteType(str, Enum):

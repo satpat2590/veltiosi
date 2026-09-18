@@ -2,15 +2,17 @@
 
 Complements the deterministic ``NoteClassifier`` (keyword matching). Jev reads
 the RAW note (title + body) and returns calibrated probabilities over the
-closed taxonomy (root categories, note types, subcategories) plus slope /
-cross-domain signals. Code owns thresholds and the folder->root mapping stays a
-deterministic floor; low-confidence answers escalate to review instead of being
-auto-applied.
+taxonomy (root categories, note types, subcategories) plus slope / cross-domain
+signals. The root + subcategory taxonomy is **config-driven**: expanding
+``categories.yaml`` / ``subcategories.yaml`` automatically widens the space Jev
+can classify — no code change.
 
-Jev is ADVISORY and fail-open: a disabled or erroring client yields an
-"unavailable" classification (``source`` = "disabled"/"error") that callers
-degrade to the keyword result. The output is never a single label without a
-distribution and confidence number.
+Code owns thresholds; the folder->root mapping stays a deterministic floor.
+Low-confidence answers escalate to review instead of being auto-applied. Jev is
+ADVISORY and fail-open: a disabled/erroring client yields an "unavailable"
+classification (``source`` "disabled"/"error") that callers degrade to the
+keyword result. The output carries the full distribution + confidence + a
+secondary-root read so downstream can do multi-label and ordering.
 """
 
 import logging
@@ -23,16 +25,8 @@ from .jev_client import JevClient
 
 logger = logging.getLogger(__name__)
 
-# Rich, explicit criteria beat bare category names: Jev treats criteria as an
-# extension of the instruction, so describe each bucket in words it can match.
-ROOT_CRITERIA: Dict[str, str] = {
-    "physical": "Physical health, fitness, the body, energy, sleep, nutrition, wellness",
-    "mental": "Cognition, consciousness, learning, research, philosophy, computation, language, poetry",
-    "financial": "Money, markets, trading systems, data engineering, economics, wealth, finance",
-    "social": "Relationships, community, geopolitics of people, social structure, belonging",
-    "uncertain": "None of the above clearly fits",
-}
-
+# Note type is a stable axis (concept/synthesis/journal/...): it changes with
+# schema design, not with topic breadth, so it stays an explicit constant.
 NOTE_TYPE_CRITERIA: Dict[str, str] = {
     "concept": "A standalone idea, argument, or philosophical exploration — one coherent thought developed in one place. Most essays and idea notes are concept notes.",
     "source_summary": "A summary of an external source (article, paper, book, podcast, video)",
@@ -49,13 +43,31 @@ NOTE_TYPE_CRITERIA: Dict[str, str] = {
 _DATE_PREFIX_RE = re.compile(r"^\d{4}-\d{2}-\d{2}\s*[-–—:]\s*")
 
 
+def build_root_criteria() -> Dict[str, str]:
+    """Root-category criteria, driven entirely by ``settings.root_categories``.
+
+    Each entry reads ``display_name`` + ``description`` straight from
+    ``categories.yaml``, so adding a root there automatically extends the Choice
+    space Jev can assign. ``uncertain`` is always appended so the model can
+    decline rather than force a closest-but-wrong label.
+    """
+    criteria: Dict[str, str] = {}
+    for name, cfg in settings.root_categories.items():
+        label = cfg.display_name or name
+        desc = (cfg.description or "").strip()
+        criteria[name] = f"{label}: {desc}" if desc else label
+    criteria["uncertain"] = "None of the above clearly fits"
+    return criteria
+
+
 @dataclass
 class JevClassification:
     """The calibrated result of one note classification.
 
     ``available`` is True only when Jev actually returned answers; otherwise the
     object holds ``source="disabled"`` / ``source="error"`` and empty fields, so
-    callers never branch on ``None``.
+    callers never branch on ``None``. ``secondary_roots`` is a multi-label read
+    off the root probability mass (a note can genuinely span roots).
     """
 
     available: bool = False
@@ -64,6 +76,7 @@ class JevClassification:
     root: Optional[str] = None
     root_probabilities: Dict[str, float] = field(default_factory=dict)
     root_confidence: Optional[float] = None
+    secondary_roots: List[str] = field(default_factory=list)
 
     note_type: Optional[str] = None
     note_type_probabilities: Dict[str, float] = field(default_factory=dict)
@@ -94,10 +107,14 @@ class JevNoteClassifier:
     """Classify a note's taxonomy with calibrated probabilities."""
 
     def __init__(
-        self, client: Optional[JevClient] = None, subcategory_threshold: float = 0.5
+        self,
+        client: Optional[JevClient] = None,
+        subcategory_threshold: float = 0.5,
+        secondary_root_threshold: float = 0.2,
     ) -> None:
         self.client = client or JevClient()
         self.subcategory_threshold = subcategory_threshold
+        self.secondary_root_threshold = secondary_root_threshold
 
     @property
     def enabled(self) -> bool:
@@ -108,7 +125,6 @@ class JevNoteClassifier:
         """Drop a leading YAML frontmatter block to reduce noise/tokens."""
         if not content.lstrip().startswith("---"):
             return content
-        # find the closing "---" on its own line after the opening one
         stripped = content.lstrip()
         end = stripped.find("\n---", 3)
         if end == -1:
@@ -128,9 +144,8 @@ class JevNoteClassifier:
 
         We send RAW evidence (not the deterministic folder->root mapping) so Jev
         forms an independent judgment; the folder mapping is reconciled in code.
-        Body is capped to avoid context rot (accuracy falls as state fills with
-        material the questions do not need). The leading date stamp is stripped
-        from the title so it is not misread as a journal/daily entry.
+        Body is capped to avoid context rot. The leading date stamp is stripped
+        so it is not misread as a journal/daily entry.
         """
         body = JevNoteClassifier._strip_frontmatter(content).strip()
         body = body[:body_limit]
@@ -139,7 +154,8 @@ class JevNoteClassifier:
     def build_questions(self) -> Dict[str, Dict[str, Any]]:
         """One fan-out set: all dimensions asked in a single round-trip.
 
-        Root + note_type are `choice` (single-label, confidence-gated).
+        Root + note_type are `choice` (single-label, confidence-gated). Root
+        criteria come from config so the topic space is extensible.
         Subcategories are independent `noul` probes (a note can belong to
         several); they are features, not a clean PMF.
         """
@@ -147,12 +163,12 @@ class JevNoteClassifier:
             "root": {
                 "type": "choice",
                 "instructions": "Which root category best fits this note?",
-                "criteria": ROOT_CRITERIA,
+                "criteria": build_root_criteria(),
             },
             "note_type": {
                 "type": "choice",
                 "instructions": "What kind of note is this?",
-                "criteria": NOTE_TYPE_CRITERIA,
+                "criteria": dict(NOTE_TYPE_CRITERIA),
             },
             "requires_slope": {
                 "type": "noul",
@@ -206,6 +222,15 @@ class JevNoteClassifier:
                 result.root_probabilities = {str(k): float(v) for k, v in probs.items()}
             if root.get("confidence") is not None:
                 result.root_confidence = float(root["confidence"])
+
+        # Multi-label read: any root with meaningful probability mass (besides the
+        # argmax and the "uncertain" escape hatch) is a secondary root.
+        if result.root and result.root_probabilities:
+            result.secondary_roots = [
+                k
+                for k, v in result.root_probabilities.items()
+                if k not in (result.root, "uncertain") and v >= self.secondary_root_threshold
+            ]
 
         note_type = answers.get("note_type") or {}
         if isinstance(note_type, dict):

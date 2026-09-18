@@ -4,22 +4,32 @@ roots:
     display_name: Physical
     moc_path: "14-Maps-of-Content/Physical MOC.md"
     color: "#4CAF50"
-    description: "Physical health and fitness"
+    description: "The human body — health, fitness, energy, sleep, nutrition, wellness"
   mental:
     display_name: Mental
     moc_path: "14-Maps-of-Content/Mental MOC.md"
     color: "#2196F3"
-    description: "Cognitive development and learning"
+    description: "Mind and knowledge — cognition, consciousness, learning, research, philosophy, language, poetry, computation of mind"
   financial:
     display_name: Financial
     moc_path: "14-Maps-of-Content/Financial MOC.md"
     color: "#FF9800"
-    description: "Financial systems and wealth building"
+    description: "Money and value — markets, trading systems, data engineering, economics, macroeconomy, wealth"
   social:
     display_name: Social
     moc_path: "14-Maps-of-Content/Social MOC.md"
     color: "#9C27B0"
-    description: "Relationships and community"
+    description: "Society and belonging — relationships, community, culture, power structures, geopolitics of people"
+  history:
+    display_name: History
+    moc_path: "14-Maps-of-Content/History MOC.md"
+    color: "#795548"
+    description: "Time and change — historical events, eras, cycles, causation and recurring patterns across history"
+  nature:
+    display_name: Nature
+    moc_path: "14-Maps-of-Content/Nature MOC.md"
+    color: "#388E3C"
+    description: "The natural world beyond the human body — ecology, evolution, physics, cosmology, natural systems"
 
 # Note types
 note_types:

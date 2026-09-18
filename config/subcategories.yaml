@@ -86,3 +86,113 @@ subcategories:
       - "05-Computation"
       - "10-Syntrofos"
     description: "Machine learning operations and model management"
+  philosophy:
+    display_name: Philosophy
+    primary_root: mental
+    moc_path: "14-Maps-of-Content/Philosophy MOC.md"
+    local_index_path: "01-Natural-Philosophy/Philosophy Index.md"
+    domain_folders:
+      - "01-Natural-Philosophy"
+      - "06-Research-Frameworks"
+    description: "Philosophy and metaphysics — the nature of existence, knowledge, ethics, truth, meaning"
+  consciousness:
+    display_name: Consciousness
+    primary_root: mental
+    moc_path: "14-Maps-of-Content/Consciousness MOC.md"
+    local_index_path: "01-Natural-Philosophy/Consciousness Index.md"
+    domain_folders:
+      - "01-Natural-Philosophy"
+      - "05-Computation"
+    description: "Consciousness and mind — awareness, qualia, cognition, self-modeling, emergence of mind"
+  systems_complexity:
+    display_name: Systems & Complexity
+    primary_root: mental
+    moc_path: "14-Maps-of-Content/Systems Complexity MOC.md"
+    local_index_path: "05-Computation/Systems Complexity Index.md"
+    domain_folders:
+      - "01-Natural-Philosophy"
+      - "05-Computation"
+    description: "Complex systems and emergence — self-organization, feedback, non-linearity, patterns across scales"
+  macroeconomics:
+    display_name: Macroeconomics
+    primary_root: financial
+    moc_path: "14-Maps-of-Content/Macroeconomics MOC.md"
+    local_index_path: "02-Economics/Macroeconomics Index.md"
+    domain_folders:
+      - "02-Economics"
+      - "08-Edoras"
+    description: "Macroeconomics — growth, inflation, central banking, systemic risk, power encoded in finance"
+  power_structures:
+    display_name: Power Structures
+    primary_root: social
+    moc_path: "14-Maps-of-Content/Power Structures MOC.md"
+    local_index_path: "03-Geopolitics/Power Structures Index.md"
+    domain_folders:
+      - "03-Geopolitics"
+      - "04-Language"
+    description: "Power and structural bias — how institutions and frameworks encode hierarchy and dominance"
+  culture:
+    display_name: Culture
+    primary_root: social
+    moc_path: "14-Maps-of-Content/Culture MOC.md"
+    local_index_path: "04-Language/Culture Index.md"
+    domain_folders:
+      - "04-Language"
+      - "03-Geopolitics"
+    description: "Culture and collective meaning — language, media, art, shared beliefs and identity"
+  economic_history:
+    display_name: Economic History
+    primary_root: history
+    moc_path: "14-Maps-of-Content/Economic History MOC.md"
+    local_index_path: "14-Maps-of-Content/Economic History Index.md"
+    domain_folders: []
+    description: "Economic history — how markets, money, trade, and crises evolved over time"
+  political_history:
+    display_name: Political History
+    primary_root: history
+    moc_path: "14-Maps-of-Content/Political History MOC.md"
+    local_index_path: "14-Maps-of-Content/Political History Index.md"
+    domain_folders: []
+    description: "Political history — rise and fall of states and empires, governance, wars, power transitions"
+  cultural_history:
+    display_name: Cultural History
+    primary_root: history
+    moc_path: "14-Maps-of-Content/Cultural History MOC.md"
+    local_index_path: "14-Maps-of-Content/Cultural History Index.md"
+    domain_folders: []
+    description: "Cultural history — how ideas, beliefs, art, and everyday life changed over time"
+  history_of_science:
+    display_name: History of Science
+    primary_root: history
+    moc_path: "14-Maps-of-Content/History of Science MOC.md"
+    local_index_path: "14-Maps-of-Content/History of Science Index.md"
+    domain_folders: []
+    description: "History of science and technology — the development of knowledge and tools across eras"
+  biography:
+    display_name: Biography
+    primary_root: history
+    moc_path: "14-Maps-of-Content/Biography MOC.md"
+    local_index_path: "14-Maps-of-Content/Biography Index.md"
+    domain_folders: []
+    description: "Biography — the life and agency of a notable individual within history"
+  ecology:
+    display_name: Ecology
+    primary_root: nature
+    moc_path: "14-Maps-of-Content/Ecology MOC.md"
+    local_index_path: "14-Maps-of-Content/Ecology Index.md"
+    domain_folders: []
+    description: "Ecology and environment — organisms, habitats, ecosystems, biodiversity, invasive species"
+  evolution:
+    display_name: Evolution
+    primary_root: nature
+    moc_path: "14-Maps-of-Content/Evolution MOC.md"
+    local_index_path: "14-Maps-of-Content/Evolution Index.md"
+    domain_folders: []
+    description: "Evolution — natural selection, adaptation, origins of life, speciation"
+  cosmology:
+    display_name: Cosmology
+    primary_root: nature
+    moc_path: "14-Maps-of-Content/Cosmology MOC.md"
+    local_index_path: "14-Maps-of-Content/Cosmology Index.md"
+    domain_folders: []
+    description: "Cosmology and fundamental physics — the universe, spacetime, fundamental forces, origins"
