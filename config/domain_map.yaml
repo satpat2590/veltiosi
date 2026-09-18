@@ -60,6 +60,9 @@ domain_folders:
   "20-Task-System":
     default_roots: []
     description: "Integrated task system with hierarchical tagging"
+  "Itihasa":
+    default_roots: [history]
+    description: "Universal history — events, eras, and recurring causal patterns (Itihasa domain)"
 
 # Root-level files
 root_files:

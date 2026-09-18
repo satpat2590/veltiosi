@@ -145,35 +145,40 @@ subcategories:
     primary_root: history
     moc_path: "14-Maps-of-Content/Economic History MOC.md"
     local_index_path: "14-Maps-of-Content/Economic History Index.md"
-    domain_folders: []
+    domain_folders:
+      - "Itihasa"
     description: "Economic history — how markets, money, trade, and crises evolved over time"
   political_history:
     display_name: Political History
     primary_root: history
     moc_path: "14-Maps-of-Content/Political History MOC.md"
     local_index_path: "14-Maps-of-Content/Political History Index.md"
-    domain_folders: []
+    domain_folders:
+      - "Itihasa"
     description: "Political history — rise and fall of states and empires, governance, wars, power transitions"
   cultural_history:
     display_name: Cultural History
     primary_root: history
     moc_path: "14-Maps-of-Content/Cultural History MOC.md"
     local_index_path: "14-Maps-of-Content/Cultural History Index.md"
-    domain_folders: []
+    domain_folders:
+      - "Itihasa"
     description: "Cultural history — how ideas, beliefs, art, and everyday life changed over time"
   history_of_science:
     display_name: History of Science
     primary_root: history
     moc_path: "14-Maps-of-Content/History of Science MOC.md"
     local_index_path: "14-Maps-of-Content/History of Science Index.md"
-    domain_folders: []
+    domain_folders:
+      - "Itihasa"
     description: "History of science and technology — the development of knowledge and tools across eras"
   biography:
     display_name: Biography
     primary_root: history
     moc_path: "14-Maps-of-Content/Biography MOC.md"
     local_index_path: "14-Maps-of-Content/Biography Index.md"
-    domain_folders: []
+    domain_folders:
+      - "Itihasa"
     description: "Biography — the life and agency of a notable individual within history"
   ecology:
     display_name: Ecology
