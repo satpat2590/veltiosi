@@ -289,6 +289,85 @@ def wiki_query(
 
 
 @app.command()
+def jev_classify(
+    folder: Optional[str] = typer.Option(
+        None, "--folder", help="Restrict to a domain folder (e.g. \"Satya's Roamings\")"
+    ),
+    limit: Optional[int] = typer.Option(None, "--limit", help="Max notes to classify"),
+    threshold: float = typer.Option(
+        0.55, "--threshold", help="Confidence threshold for auto-apply (root)"
+    ),
+    workers: int = typer.Option(16, "--workers", help="Concurrent classification requests"),
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+) -> None:
+    """Classify notes with Jev (System One) — calibrated + confidence-aware, read-only."""
+    from veltiosi.workflows.jev_classify import run_jev_classify
+
+    try:
+        result = run_jev_classify(
+            folder=folder, limit=limit, threshold=threshold, workers=workers
+        )
+    except Exception as e:
+        console.print(f"[red]✗ Error: {e}[/red]")
+        raise typer.Exit(1)
+
+    if "error" in result:
+        console.print(f"[yellow]⚠ {result['error']}[/yellow]")
+        raise typer.Exit(1)
+
+    if json_output:
+        console.print_json(data=result)
+        return
+
+    console.print(
+        f"[green]✓ Jev classified {result['classified']} notes "
+        f"({result['available']} available)[/green]"
+    )
+    console.print(
+        f"  Confident root (≥{result['threshold']}): {result['confident_root']}"
+    )
+    console.print(f"  Review / low-confidence: {result['review_count']}")
+
+    console.print("\n[bold]Root distribution (Jev vs deterministic):[/bold]")
+    root_table = Table(title="Root Category")
+    root_table.add_column("Root", style="bold")
+    root_table.add_column("Jev", justify="right")
+    root_table.add_column("Deterministic", justify="right")
+    root_dist = result.get("root_distribution", {})
+    det_dist = result.get("deterministic_root_distribution", {})
+    all_roots = sorted(set(root_dist) | set(det_dist))
+    for root in all_roots:
+        root_table.add_row(root, str(root_dist.get(root, 0)), str(det_dist.get(root, 0)))
+    console.print(root_table)
+
+    disagreements = result.get("disagreements", [])
+    console.print(
+        f"\n[yellow]Deterministic↔Jev disagreements: {result.get('disagreement_count', 0)}[/yellow]"
+    )
+    if disagreements:
+        dtable = Table(title="Disagreements (deterministic root vs Jev root)")
+        dtable.add_column("Note")
+        dtable.add_column("Deterministic")
+        dtable.add_column("Jev")
+        dtable.add_column("Conf", justify="right")
+        for d in disagreements[:30]:
+            dtable.add_row(
+                d["title"],
+                d["deterministic_root"] or "-",
+                d["root"] or "-",
+                f"{d['root_confidence']:.2f}" if d["root_confidence"] is not None else "-",
+            )
+        console.print(dtable)
+
+    review = result.get("review", [])
+    if review:
+        console.print(f"\n[yellow]Review queue ({len(review)}):[/yellow]")
+        for r in review[:30]:
+            conf = f"{r['root_confidence']:.2f}" if r["root_confidence"] is not None else "-"
+            console.print(f"  - [{r['source']}] conf={conf}  {r['title']}")
+
+
+@app.command()
 def config_show() -> None:
     """Show current configuration."""
     console.print("[bold]Veltiosi Configuration[/bold]")
