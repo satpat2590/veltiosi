@@ -2,6 +2,7 @@
 
 import json
 import logging
+import os
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Union
 
@@ -152,6 +153,76 @@ class GeminiProvider(LLMProvider):
             return False
 
 
+class OpenRouterProvider(LLMProvider):
+    """Google Gemini (and other models) via OpenRouter's chat-completions API.
+
+    Uses the shared ``OPENROUTER_API_KEY`` (already trusted by Jev), so the
+    generative synthesis/query path no longer depends on a native Google key.
+    """
+
+    def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None) -> None:
+        self.api_key = api_key or os.getenv("OPENROUTER_API_KEY")
+        self.model = model or os.getenv("VELTIOSI_LLM_MODEL", "google/gemini-2.5-flash")
+        self._available = bool(self.api_key)
+        if not self._available:
+            logger.warning("OpenRouter API key not configured")
+
+    def generate_content(
+        self,
+        prompt: str,
+        context: Optional[str] = None,
+        task_type: str = "default",
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+    ) -> Optional[str]:
+        if not self._available:
+            return None
+        try:
+            import requests  # noqa: F401 — guarded; absence degrades to None
+        except Exception:
+            return None
+
+        full_prompt = prompt
+        if context:
+            full_prompt = f"Context:\n{context}\n\nTask:\n{prompt}"
+
+        payload = {
+            "model": self.model,
+            "messages": [
+                {"role": "system", "content": "You are a precise assistant for a personal knowledge base."},
+                {"role": "user", "content": full_prompt},
+            ],
+            "temperature": temperature if temperature is not None else 0.7,
+            "max_tokens": max_tokens or 2048,
+        }
+        try:
+            resp = requests.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"},
+                json=payload,
+                timeout=120,
+            )
+        except Exception as e:  # noqa: BLE001 — fail-open
+            logger.error(f"OpenRouter request failed: {e}")
+            return None
+
+        if resp.status_code != 200:
+            logger.warning(f"OpenRouter HTTP {resp.status_code}: {(resp.text or '')[:200]}")
+            return None
+
+        try:
+            data = resp.json()
+            content = data.get("choices", [{}])[0].get("message", {}).get("content")
+        except Exception as e:  # noqa: BLE001
+            logger.error(f"OpenRouter response parse failed: {e}")
+            return None
+
+        return content.strip() if content else None
+
+    def test_connection(self) -> bool:
+        return self._available
+
+
 class MockProvider(LLMProvider):
     """Mock provider for testing and fallback."""
 
@@ -206,14 +277,18 @@ class LLMService:
         """Initialize providers based on configuration."""
         provider_config = settings.llm_config.provider
 
-        # Add Gemini if configured
+        # OpenRouter (calls Gemini and others) — primary when a key is present.
+        openrouter = OpenRouterProvider()
+        if openrouter.test_connection():
+            self.providers.append(openrouter)
+            logger.info(f"OpenRouter provider added ({openrouter.model})")
+
+        # Native Google Gemini — secondary (legacy path).
         if provider_config == "google" and settings.google_api_key:
             gemini = GeminiProvider()
             if gemini.test_connection():
                 self.providers.append(gemini)
                 logger.info("Gemini provider added")
-            else:
-                logger.warning("Gemini provider failed connection test")
 
         # Always add mock provider as last resort fallback
         self.providers.append(MockProvider())

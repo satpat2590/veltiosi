@@ -57,12 +57,23 @@ class WikiQueryWorkflow:
     def _answer(self, question: str, route, notes) -> Optional[QueryResult]:
         """Route the query to the right handler given the route + notes."""
         # Non-vault source wins over everything: a WHOOP/Edoras/Itihasa query will
-        # naturally have no vault notes, so route it before complaining about them.
+        # naturally have no vault notes, so route it to its connector first.
         if route.available and route.data_source not in ("vault", "uncertain"):
+            from ..connectors.datasources import query_source
+
+            text = query_source(route.data_source, question)
+            if text:
+                return QueryResult(
+                    answer=text,
+                    citations=[],
+                    confidence=route.intent_confidence or 0.5,
+                    coverage_gaps=[],
+                    suggested_new_notes=[],
+                )
             return QueryResult(
                 answer=(
                     f"This question looks like it needs the '{route.data_source}' data "
-                    f"source (domain: {route.domain or 'unknown'}), not the Obsidian vault."
+                    f"source (domain: {route.domain or 'unknown'}), but that source is unreachable."
                 ),
                 citations=[],
                 confidence=route.intent_confidence or 0.5,
