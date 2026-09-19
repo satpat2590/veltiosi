@@ -69,27 +69,23 @@ function esc(s){ return (s||'').replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;',
 
 function render(d) {
   const r = d.route || {};
-  const res = d.result || {};
   const pills = `
     <span class="pill intent">intent: ${esc(r.intent||'—')}</span>
     <span class="pill domain">domain: ${esc(r.domain||'—')}${(r.secondary_domains||[]).length ? ' +'+esc(r.secondary_domains.join('+')) : ''}</span>
-    <span class="pill source">source: ${esc(r.data_source||'—')}</span>
-    <span class="pill conf">conf: ${r.intent_confidence != null ? r.intent_confidence.toFixed(2) : '—'}${r.available ? '' : ' (no Jev — legacy)'}</span>
-    <span class="pill domain">answerable-from-notes: ${(r.answerable ?? 0.5).toFixed(2)}</span>`;
+    ${d.source ? `<span class="pill source">live source: ${esc(d.source)}</span>` : ''}`;
 
-  const citeHtml = (res.citations||[]).length
-    ? `<div class="cites">citations: ${(res.citations||[]).map(esc).join(' · ')}</div>` : '';
+  const citeHtml = (d.citations||[]).length
+    ? `<div class="cites">citations: ${(d.citations||[]).map(esc).join(' · ')}</div>` : '';
 
   const notesHtml = (d.notes||[]).map(n => `
     <div class="note">
-      <div class="title">${esc(n.title)}</div>
-      <div class="meta">${esc(n.domain_folder||'root')} · ${esc(n.root_category||'—')} · ${esc(n.note_type||'—')}${(n.subcategories||[]).length ? ' · '+esc(n.subcategories.join(', ')) : ''}</div>
+      <div class="title">${esc(n.title)} <span class="jscore">rel ${(n.score ?? 0).toFixed(2)}</span></div>
       <div class="snippet">${esc(n.snippet||'')}</div>
     </div>`).join('');
 
   document.getElementById('main').innerHTML = `
     <div class="route"><h2>Jev routing</h2>${pills}</div>
-    <div class="answer"><h2>Answer</h2><div class="body">${esc(res.answer||'(no answer)')}</div>${citeHtml}</div>
+    <div class="answer"><h2>Answer</h2><div class="body">${esc(d.answer||'(no answer)')}</div>${citeHtml}</div>
     <h2 style="font-size:13px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-dim)">Relevant notes (${(d.notes||[]).length})</h2>
     ${notesHtml || '<div class="empty">no notes</div>'}`;
 }
@@ -97,7 +93,7 @@ function render(d) {
 async function doSearch() {
   const q = document.getElementById('q').value.trim();
   if (!q) return;
-  document.getElementById('main').innerHTML = '<div class="spinner">classifying + retrieving…</div>';
+  document.getElementById('main').innerHTML = '<div class="spinner">embedding + re-ranking + synthesizing…</div>';
   const d = await jget('/api/search?q=' + encodeURIComponent(q));
   if (d._error) { document.getElementById('main').innerHTML = `<div class="empty">${esc(d._error)}</div>`; return; }
   render(d);

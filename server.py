@@ -44,16 +44,10 @@ def health():
 
 
 @app.get("/api/search")
-def search(q: str = Query(...), max_notes: int = Query(10)):
-    from veltiosi.models import QueryResult
+def search(q: str = Query(...), top_k: int = Query(8)):
+    from veltiosi.services.omni_search import search_everything
 
-    out = _get_workflow().search(q, max_notes=max_notes)
-    if out is None:
-        return {"query": q, "error": "no result"}
-    # result is a pydantic QueryResult nested in the dict; dump it for JSON.
-    if isinstance(out.get("result"), QueryResult):
-        out["result"] = out["result"].model_dump()
-    return out
+    return search_everything(q, top_k=top_k)
 
 
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
