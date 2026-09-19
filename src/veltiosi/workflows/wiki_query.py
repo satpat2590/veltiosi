@@ -3,9 +3,10 @@
 import logging
 import time
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from ..audit import AuditLogger
+from ..indexing.jev_router import JevQueryRouter
 from ..models import QueryResult
 from ..services.llm_service import llm_service
 from ..services.retrieval import RetrievalService
@@ -21,24 +22,54 @@ class WikiQueryWorkflow:
         """Initialize wiki query workflow."""
         self.wiki_repo = WikiRepository(vault_path)
         self.retrieval = RetrievalService(self.wiki_repo)
+        self.router = JevQueryRouter()
 
-    def query(
-        self,
-        question: str,
-        max_notes: int = 10,
-        include_generated: bool = True,
-    ) -> Optional[QueryResult]:
-        """Query the wiki with a natural language question."""
-        logger.info(f"Querying wiki: {question}")
-
-        # Retrieve relevant notes
-        relevant_notes = self.retrieval.retrieve_for_query(
-            query=question,
-            max_notes=max_notes,
+    def _route_and_retrieve(self, question: str, max_notes: int):
+        """Jev-route the query; return (route, narrowed + reranked notes)."""
+        route = self.router.route(question)
+        logger.info(
+            f"Jev route: intent={route.intent} domain={route.domain} "
+            f"source={route.data_source} answerable={route.answerable} ({route.source})"
         )
+        notes = self.retrieval.retrieve_for_query(
+            query=question,
+            category_filter=route.category_filter,
+            max_notes=max_notes * 2,
+        )
+        # Jev semantic re-rank (fail-open: trim to max_notes when Jev is absent).
+        if route.available and notes:
+            items = [
+                {
+                    "id": str(n.path),
+                    "title": n.title,
+                    "snippet": (self.wiki_repo.read_note_content(str(n.path)) or "")[:400],
+                }
+                for n in notes
+            ]
+            ranked = self.router.rerank(question, items, top_k=max_notes)
+            order = {r["id"]: r["jscore"] for r in ranked}
+            notes = [n for n in notes if str(n.path) in order]
+            notes.sort(key=lambda n: -order.get(str(n.path), 0.0))
+        else:
+            notes = notes[:max_notes]
+        return route, notes
 
-        if not relevant_notes:
-            logger.warning("No relevant notes found for query")
+    def _answer(self, question: str, route, notes) -> Optional[QueryResult]:
+        """Route the query to the right handler given the route + notes."""
+        # Non-vault source wins over everything: a WHOOP/Edoras/Itihasa query will
+        # naturally have no vault notes, so route it before complaining about them.
+        if route.available and route.data_source not in ("vault", "uncertain"):
+            return QueryResult(
+                answer=(
+                    f"This question looks like it needs the '{route.data_source}' data "
+                    f"source (domain: {route.domain or 'unknown'}), not the Obsidian vault."
+                ),
+                citations=[],
+                confidence=route.intent_confidence or 0.5,
+                coverage_gaps=[],
+                suggested_new_notes=[],
+            )
+        if not notes:
             return QueryResult(
                 answer="No relevant information found in the wiki.",
                 citations=[],
@@ -46,24 +77,84 @@ class WikiQueryWorkflow:
                 coverage_gaps=[f"No notes found related to: {question}"],
                 suggested_new_notes=[],
             )
-
-        logger.info(f"Found {len(relevant_notes)} relevant notes")
-
-        # Build wiki context from relevant notes
-        wiki_context = self._build_wiki_context(relevant_notes)
-
-        # Generate answer using LLM
+        if route.available and route.intent == "clarify":
+            return QueryResult(
+                answer=f"Can you clarify? I read this as a {route.domain or 'general'} question but it's underspecified.",
+                citations=[],
+                confidence=route.intent_confidence or 0.4,
+                coverage_gaps=[],
+                suggested_new_notes=[],
+            )
+        if route.available and route.intent in ("fact_lookup", "navigation"):
+            parts = []
+            for note in notes[:3]:
+                content = self.wiki_repo.read_note_content(str(note.path)) or ""
+                parts.append(f"## {note.title}\n{content[:400]}")
+            return QueryResult(
+                answer="\n\n".join(parts) or "No content found.",
+                citations=[f"[[{note.title}]]" for note in notes[:3]],
+                confidence=route.intent_confidence or 0.7,
+                coverage_gaps=[],
+                suggested_new_notes=[],
+            )
+        # Synthesis (or Jev absent) -> Gemini.
         result = llm_service.generate_query_answer(
             question=question,
-            wiki_context=wiki_context,
+            wiki_context=self._build_wiki_context(notes),
         )
-
         if result:
             logger.info(f"Generated answer with {len(result.citations)} citations")
-            return result
         else:
             logger.error("Failed to generate answer")
+        return result
+
+    def search(
+        self,
+        question: str,
+        max_notes: int = 10,
+        include_generated: bool = True,
+    ) -> Optional[Dict[str, Any]]:
+        """Rich search (UI): routing decision + ranked notes + answer."""
+        route, notes = self._route_and_retrieve(question, max_notes)
+        result = self._answer(question, route, notes)
+        if result is None:
             return None
+        note_dicts = [
+            {
+                "title": n.title,
+                "path": str(n.path),
+                "domain_folder": n.domain_folder,
+                "root_category": n.primary_root_category.value if n.primary_root_category else None,
+                "note_type": n.note_type.value if n.note_type else None,
+                "subcategories": list(n.subcategories),
+                "snippet": (self.wiki_repo.read_note_content(str(n.path)) or "")[:400],
+            }
+            for n in notes
+        ]
+        return {
+            "route": {
+                "available": route.available,
+                "source": route.source,
+                "intent": route.intent,
+                "intent_confidence": route.intent_confidence,
+                "domain": route.domain,
+                "secondary_domains": route.secondary_domains,
+                "data_source": route.data_source,
+                "answerable": route.answerable,
+            },
+            "notes": note_dicts,
+            "result": result,
+        }
+
+    def query(
+        self,
+        question: str,
+        max_notes: int = 10,
+        include_generated: bool = True,
+    ) -> Optional[QueryResult]:
+        """Query the wiki (classic entry point) — returns just the QueryResult."""
+        out = self.search(question, max_notes, include_generated)
+        return out["result"] if out else None
 
     def _build_wiki_context(self, notes: list) -> str:
         """Build context string from relevant notes."""

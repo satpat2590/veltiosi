@@ -20,6 +20,18 @@ import pytest
 from veltiosi.models import NoteRecord, NoteType, QueryResult
 
 
+# Pin the Jev env precondition: a live verification run that `source`s
+# ~/.hermes/.env exports OPENROUTER_API_KEY into the persistent shell. The
+# wiki_query workflow now constructs a JevQueryRouter — deleting the key for
+# every test here keeps the router deterministically disabled so these tests
+# exercise the legacy (fail-open) Gemini path they were written for.
+@pytest.fixture(autouse=True)
+def _pin_jev_env(monkeypatch):
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    monkeypatch.delenv("VELTIOSI_JEV_API_KEY", raising=False)
+    monkeypatch.delenv("VELTIOSI_JEV_ENABLED", raising=False)
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
