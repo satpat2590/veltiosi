@@ -3,89 +3,129 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Veltiosi · search everything</title>
+<title>Veltiosi — search everything</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
 <style>
   :root {
-    --bg: #0d1117; --bg-elev: #161b22; --card: #1c2128;
-    --border: #30363d; --cyan: #58a6ff; --green: #3fb950;
-    --amber: #d29922; --red: #f85149; --purple: #bc8cff;
-    --text: #e6edf3; --dim: #8b949e;
+    --bg: #0f1117; --bg-elev: #151822; --card: #191d28;
+    --border: #242a36; --border-strong: #2e3544;
+    --text: #e7eaf0; --dim: #8b94a5; --faint: #5c6572;
+    --accent: #6e9bff; --accent-hover: #8ab0ff;
+    --green: #4cc38a; --amber: #e5a158;
+    --shadow: 0 8px 24px rgba(0,0,0,.35);
   }
   * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
   body { margin: 0; background: var(--bg); color: var(--text);
-         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-  a { color: var(--cyan); }
+         font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+         -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { color: var(--accent-hover); }
 
-  header { display: flex; align-items: center; gap: 12px; padding: 14px 20px;
-           background: var(--bg-elev); border-bottom: 1px solid var(--border);
-           position: sticky; top: 0; z-index: 10; }
-  .brand { font-weight: 700; font-size: 15px; color: var(--cyan); white-space: nowrap; letter-spacing: .3px; }
-  .brand span { color: var(--dim); font-weight: 400; }
-  #q { flex: 1; padding: 10px 14px; background: var(--card); color: var(--text);
-       border: 1px solid var(--border); border-radius: 8px; font-size: 15px; outline: none; }
-  #q:focus { border-color: var(--cyan); }
-  button { padding: 10px 16px; background: var(--cyan); color: #0d1117; border: 0;
-           border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px; }
-  button.ghost { background: transparent; color: var(--cyan); border: 1px solid var(--border); }
-  label.toggle { font-size: 12px; color: var(--dim); display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; cursor: pointer; }
+  /* ── header ─────────────────────────────────────────── */
+  header { position: sticky; top: 0; z-index: 20;
+           background: rgba(15,17,23,.82); backdrop-filter: blur(14px);
+           border-bottom: 1px solid var(--border); }
+  .bar { display: flex; align-items: center; gap: 14px; padding: 14px 24px; max-width: 1240px; margin: 0 auto; }
+  .brand { display: flex; align-items: baseline; gap: 6px; font-weight: 700; font-size: 16px; color: var(--text); white-space: nowrap; letter-spacing: -.2px; }
+  .brand .dot { color: var(--accent); }
+  .brand .sub { color: var(--dim); font-weight: 400; font-size: 13px; }
+  .searchwrap { flex: 1; position: relative; max-width: 640px; }
+  .searchwrap .mag { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--faint); font-size: 14px; pointer-events: none; }
+  #q { width: 100%; padding: 11px 16px 11px 40px; background: var(--card); color: var(--text);
+       border: 1px solid var(--border-strong); border-radius: 10px; font-size: 14.5px; outline: none;
+       transition: border-color .15s, box-shadow .15s; font-family: inherit; }
+  #q::placeholder { color: var(--faint); }
+  #q:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(110,155,255,.15); }
+  button { padding: 11px 18px; background: var(--accent); color: #0b0e14; border: 0;
+           border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 13.5px; font-family: inherit;
+           transition: background .15s, transform .05s; }
+  button:hover { background: var(--accent-hover); }
+  button:active { transform: translateY(1px); }
+  button.ghost { background: transparent; color: var(--dim); border: 1px solid var(--border-strong); }
+  button.ghost:hover { color: var(--text); border-color: var(--accent); background: rgba(110,155,255,.06); }
+  label.toggle { font-size: 12.5px; color: var(--dim); display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; cursor: pointer; user-select: none; }
+  label.toggle input { accent-color: var(--accent); }
 
-  .container { max-width: 880px; margin: 0 auto; padding: 20px; }
-  .empty { color: var(--dim); text-align: center; padding: 50px 0; font-size: 14px; }
+  /* ── layout ─────────────────────────────────────────── */
+  .container { max-width: 920px; margin: 0 auto; padding: 28px 24px 60px; }
+  .container.wide { max-width: 1160px; }
+  .empty { color: var(--faint); text-align: center; padding: 90px 0; font-size: 14px; }
+  .empty .big { font-size: 17px; color: var(--dim); margin-bottom: 6px; }
 
-  .livesrc { border: 1px solid var(--border); border-left: 3px solid var(--green);
-             background: var(--bg-elev); border-radius: 8px; padding: 12px 16px; margin-bottom: 18px; }
-  .livesrc h3 { margin: 0 0 6px; font-size: 11px; text-transform: uppercase; letter-spacing: .6px; color: var(--green); }
-  .livesrc pre { margin: 0; white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-                 font-size: 12.5px; line-height: 1.5; color: var(--text); }
+  /* ── live source ────────────────────────────────────── */
+  .livesrc { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 24px; background: var(--bg-elev); }
+  .livesrc .cap { padding: 9px 16px; background: rgba(76,195,138,.08); border-bottom: 1px solid var(--border);
+                  font-size: 11px; font-weight: 600; letter-spacing: .8px; text-transform: uppercase; color: var(--green);
+                  display: flex; align-items: center; gap: 7px; }
+  .livesrc .cap .spark { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .livesrc pre { margin: 0; padding: 14px 16px; white-space: pre-wrap; font-family: 'JetBrains Mono', ui-monospace, monospace;
+                 font-size: 12.5px; line-height: 1.6; color: var(--text); }
 
-  .result { border: 1px solid var(--border); background: var(--card); border-radius: 8px;
-            padding: 12px 16px; margin-bottom: 10px; cursor: pointer; transition: border-color .12s, background .12s; }
-  .result:hover { border-color: var(--cyan); background: var(--bg-elev); }
-  .result .head { display: flex; align-items: baseline; gap: 10px; }
-  .result .rank { color: var(--dim); font-size: 12px; min-width: 18px; font-variant-numeric: tabular-nums; }
-  .result .title { font-weight: 600; font-size: 14px; flex: 1; }
-  .result .rel { font-size: 11px; color: var(--dim); font-variant-numeric: tabular-nums; }
-  .result .rel strong { color: var(--green); }
-  .result .snippet { font-size: 12.5px; color: var(--dim); margin-top: 6px; line-height: 1.45;
+  /* ── results ────────────────────────────────────────── */
+  .result { display: block; width: 100%; text-align: left; border: 1px solid var(--border); background: var(--card);
+            border-radius: 12px; padding: 15px 18px; margin-bottom: 10px; cursor: pointer;
+            transition: border-color .14s, background .14s, transform .14s, box-shadow .14s; font-family: inherit; }
+  .result:hover { border-color: var(--accent); background: var(--bg-elev); transform: translateY(-1px); box-shadow: var(--shadow); }
+  .result .head { display: flex; align-items: center; gap: 12px; }
+  .result .rank { color: var(--faint); font-size: 12px; min-width: 20px; font-variant-numeric: tabular-nums; font-weight: 500; }
+  .result .title { font-weight: 600; font-size: 14.5px; color: var(--text); flex: 1; letter-spacing: -.1px; }
+  .result .rel { font-size: 11.5px; font-weight: 600; color: var(--green); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .result .bar { height: 3px; background: var(--border); border-radius: 2px; margin-top: 9px; overflow: hidden; }
+  .result .bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--green)); border-radius: 2px; }
+  .result .snippet { font-size: 13px; color: var(--dim); margin-top: 8px; line-height: 1.5;
                      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
-  .note-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
-  .note-head button { background: transparent; color: var(--cyan); border: 1px solid var(--border); padding: 7px 13px; font-size: 12px; }
-  .note-head .path { color: var(--dim); font-size: 12px; font-family: ui-monospace, Menlo, monospace; }
-  .note-body { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 10px;
-               padding: 24px 28px; font-size: 15px; line-height: 1.65; }
-  .note-body h1, .note-body h2, .note-body h3, .note-body h4 { margin: 1.2em 0 .5em; line-height: 1.3; }
-  .note-body h1 { font-size: 1.6em; border-bottom: 1px solid var(--border); padding-bottom: .3em; }
-  .note-body h2 { font-size: 1.3em; }
-  .note-body h3 { font-size: 1.1em; }
-  .note-body p { margin: .6em 0; }
-  .note-body code { background: var(--card); padding: 2px 6px; border-radius: 4px; font-size: .88em;
-                    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-  .note-body pre { background: var(--card); border: 1px solid var(--border); border-radius: 8px;
-                   padding: 14px; overflow-x: auto; }
+  /* ── note view ──────────────────────────────────────── */
+  .note-head { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+  .note-head button { background: transparent; color: var(--dim); border: 1px solid var(--border-strong); padding: 8px 14px; font-size: 12.5px; }
+  .note-head button:hover { color: var(--text); border-color: var(--accent); background: rgba(110,155,255,.06); }
+  .note-head .path { color: var(--faint); font-size: 12px; font-family: 'JetBrains Mono', ui-monospace, monospace; word-break: break-all; }
+  .note-body { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 14px;
+               padding: 36px 44px 48px; font-size: 15.5px; line-height: 1.72; color: var(--text); }
+  .note-body > :first-child { margin-top: 0; }
+  .note-body h1, .note-body h2, .note-body h3, .note-body h4 { margin: 1.4em 0 .5em; line-height: 1.3; font-weight: 600; letter-spacing: -.2px; }
+  .note-body h1 { font-size: 1.7em; border-bottom: 1px solid var(--border); padding-bottom: .35em; }
+  .note-body h2 { font-size: 1.35em; }
+  .note-body h3 { font-size: 1.15em; }
+  .note-body p { margin: .7em 0; }
+  .note-body a { text-decoration: underline; text-underline-offset: 2px; }
+  .note-body code { background: var(--card); padding: 2px 6px; border-radius: 5px; font-size: .86em;
+                    font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  .note-body pre { background: #12151d; border: 1px solid var(--border); border-radius: 10px;
+                   padding: 16px 18px; overflow-x: auto; line-height: 1.55; }
   .note-body pre code { background: none; padding: 0; }
-  .note-body blockquote { border-left: 3px solid var(--amber); margin: .8em 0; padding: .2em 1em; color: var(--dim); }
-  .note-body table { border-collapse: collapse; margin: 1em 0; width: 100%; }
-  .note-body th, .note-body td { border: 1px solid var(--border); padding: 7px 11px; text-align: left; font-size: .92em; }
-  .note-body th { background: var(--card); }
-  .note-body ul, .note-body ol { padding-left: 1.6em; }
-  .note-body li { margin: .3em 0; }
-  .note-body hr { border: none; border-top: 1px solid var(--border); margin: 1.4em 0; }
-  .spinner { color: var(--dim); text-align: center; padding: 40px; font-size: 13px; }
+  .note-body blockquote { border-left: 3px solid var(--accent); margin: 1em 0; padding: .2em 1.2em; color: var(--dim); background: rgba(110,155,255,.04); border-radius: 0 8px 8px 0; }
+  .note-body table { border-collapse: collapse; margin: 1.2em 0; width: 100%; font-size: .92em; }
+  .note-body th, .note-body td { border: 1px solid var(--border); padding: 9px 13px; text-align: left; }
+  .note-body th { background: var(--card); font-weight: 600; }
+  .note-body tr:nth-child(even) td { background: rgba(255,255,255,.015); }
+  .note-body ul, .note-body ol { padding-left: 1.7em; }
+  .note-body li { margin: .35em 0; }
+  .note-body hr { border: none; border-top: 1px solid var(--border); margin: 1.6em 0; }
+  .note-body img { max-width: 100%; border-radius: 8px; }
+  .spinner { color: var(--faint); text-align: center; padding: 80px; font-size: 13px; }
 </style>
 </head>
 <body>
 <header>
-  <div class="brand">Veltiosi <span>· search everything</span></div>
-  <input id="q" placeholder="Search your vault, health, portfolios, history, music, tasks…" />
-  <label class="toggle"><input type="checkbox" id="rerank" checked> Jev re-rank</label>
-  <button id="go">Search</button>
+  <div class="bar">
+    <div class="brand"><span class="dot">◆</span> Veltiosi <span class="sub">· search everything</span></div>
+    <div class="searchwrap">
+      <span class="mag">⌕</span>
+      <input id="q" placeholder="Search your vault, health, portfolios, history, music, tasks…" autocomplete="off" />
+    </div>
+    <label class="toggle"><input type="checkbox" id="rerank" checked> Jev re-rank</label>
+    <button id="go">Search</button>
+  </div>
 </header>
 
 <div class="container" id="view">
-  <div class="empty">Search across all of Omni — type above and press Enter.</div>
+  <div class="empty"><div class="big">Search across all of Omni</div>Type a query above and press Enter.</div>
 </div>
 
 <script>
@@ -94,44 +134,51 @@ async function jget(url) {
   catch (e) { return {_error: e.message}; }
 }
 function esc(s){ return (s||'').replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+function escAttr(s){ return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 function renderMarkdown(md) {
-  md = (md||'').replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '');                 // strip YAML frontmatter
-  md = md.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_, a, b) => b || a);   // wikilinks -> text
+  md = (md||'').replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '');
+  md = md.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_, a, b) => b || a);
   return DOMPurify.sanitize(marked.parse(md, { gfm: true, breaks: true }));
 }
 
+function relPath(p){ return (p||'').replace(/^\/home\/satyamini\/Obsidian\//, '').split('/').join(' / '); }
+
 function showSearch(d) {
+  const c = document.getElementById('view');
+  c.classList.remove('wide');
   let html = '';
   if (d.source && d.source_text) {
-    html += `<div class="livesrc"><h3>live · ${esc(d.source)}</h3><pre>${esc(d.source_text)}</pre></div>`;
+    html += `<div class="livesrc"><div class="cap"><span class="spark"></span>live · ${esc(d.source)}</div><pre>${esc(d.source_text)}</pre></div>`;
   }
   if (!d.notes.length) {
-    html += `<div class="empty">No results for “${esc(d.query)}”.</div>`;
+    html += `<div class="empty"><div class="big">No results</div>Nothing matched “${esc(d.query)}”.</div>`;
   } else {
     html += d.notes.map((n, i) => `
-      <div class="result" onclick="openNote('${encodeURIComponent(n.path)}')">
+      <button class="result" data-path="${escAttr(n.path)}">
         <div class="head">
-          <span class="rank">${i+1}</span>
+          <span class="rank">${String(i+1).padStart(2,'0')}</span>
           <span class="title">${esc(n.title)}</span>
-          <span class="rel"><strong>${(n.score*100).toFixed(0)}%</strong> match</span>
+          <span class="rel">${(n.score*100).toFixed(0)}%</span>
         </div>
+        <div class="bar"><i style="width:${(n.score*100).toFixed(0)}%"></i></div>
         <div class="snippet">${esc(n.snippet || '')}</div>
-      </div>`).join('');
+      </button>`).join('');
   }
-  document.getElementById('view').innerHTML = html;
+  c.innerHTML = html;
 }
 
 async function openNote(path) {
-  document.getElementById('view').innerHTML = '<div class="spinner">loading…</div>';
-  const n = await jget('/api/note?path=' + path);
-  if (n._error) { document.getElementById('view').innerHTML = `<div class="empty">${esc(n._error)}</div>`; return; }
+  const c = document.getElementById('view');
+  c.classList.add('wide');
+  c.innerHTML = '<div class="spinner">loading…</div>';
+  const n = await jget('/api/note?path=' + encodeURIComponent(path));
+  if (n._error) { c.innerHTML = `<div class="empty">${esc(n._error)}</div>`; return; }
   history.pushState(null, '', '#note=' + encodeURIComponent(path));
-  document.getElementById('view').innerHTML = `
+  c.innerHTML = `
     <div class="note-head">
-      <button onclick="goHome()">← back</button>
-      <div><div style="font-weight:700;font-size:17px">${esc(n.title)}</div>
-      <div class="path">${esc(n.path)}</div></div>
+      <button onclick="goHome()">← back to results</button>
+      <div class="path" style="min-width:0;flex:1">${esc(relPath(n.path))}</div>
     </div>
     <div class="note-body">${renderMarkdown(n.content)}</div>`;
 }
@@ -140,22 +187,32 @@ async function doSearch() {
   const q = document.getElementById('q').value.trim();
   if (!q) return;
   const rerank = document.getElementById('rerank').checked;
-  document.getElementById('view').innerHTML = '<div class="spinner">searching…</div>';
+  const c = document.getElementById('view');
+  c.classList.remove('wide');
+  c.innerHTML = '<div class="spinner">searching…</div>';
   const d = await jget('/api/search?q=' + encodeURIComponent(q) + (rerank ? '&rerank=true' : ''));
-  if (d._error) { document.getElementById('view').innerHTML = `<div class="empty">${esc(d._error)}</div>`; return; }
+  if (d._error) { c.innerHTML = `<div class="empty">${esc(d._error)}</div>`; return; }
   history.pushState(null, '', '#');
   showSearch(d);
 }
 
 function goHome() {
   history.pushState(null, '', '#');
-  document.getElementById('view').innerHTML = '<div class="empty">Search across all of Omni.</div>';
+  const c = document.getElementById('view');
+  c.classList.remove('wide');
+  c.innerHTML = '<div class="empty"><div class="big">Search across all of Omni</div>Type a query above and press Enter.</div>';
 }
 
 function onHash() {
   const h = decodeURIComponent(location.hash || '');
   if (h.startsWith('#note=')) openNote(h.slice('#note='.length));
 }
+
+// delegated click: read data-path (safe against quotes/apostrophes in paths)
+document.getElementById('view').addEventListener('click', e => {
+  const el = e.target.closest('.result');
+  if (el) openNote(el.dataset.path);
+});
 
 document.getElementById('go').onclick = doSearch;
 document.getElementById('q').addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
