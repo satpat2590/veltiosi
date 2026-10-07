@@ -23,6 +23,7 @@ from veltiosi.indexing.jev_client import JevClient
 @pytest.fixture(autouse=True)
 def _pin_env(monkeypatch):
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    monkeypatch.delenv("TYPESAFE_API_KEY", raising=False)
     monkeypatch.delenv("VELTIOSI_JEV_API_KEY", raising=False)
     monkeypatch.delenv("VELTIOSI_JEV_ENABLED", raising=False)
 
@@ -98,3 +99,38 @@ class TestDecideFailureModes:
         mock_requests.post.return_value = _resp(200, {"model": "jev-1.13"})
         c = JevClient(api_key="sk-test", enabled=True)
         assert c.decide("state", {"q": {"type": "noul", "instructions": "x"}}) is None
+
+
+class TestNativeProvider:
+    def test_native_defaults(self, monkeypatch):
+        monkeypatch.delenv("VELTIOSI_JEV_MODEL", raising=False)
+        monkeypatch.delenv("VELTIOSI_JEV_BASE_URL", raising=False)
+        c = JevClient(provider="native", api_key="ts-key", enabled=True)
+        assert c.provider == "native"
+        assert c.model == "jev-latest"
+        assert c.base_url == "https://api.typesafe.ai/v1/systemone"
+
+    def test_default_order_is_native_first(self, monkeypatch):
+        monkeypatch.delenv("VELTIOSI_JEV_MODEL", raising=False)
+        monkeypatch.delenv("VELTIOSI_JEV_BASE_URL", raising=False)
+        monkeypatch.setenv("TYPESAFE_API_KEY", "ts-key")
+        monkeypatch.setenv("OPENROUTER_API_KEY", "or-key")
+        c = JevClient(enabled=True)
+        assert c._order == ["native", "openrouter"]
+        assert c.provider == "native"
+        assert c.api_key == "ts-key"  # primary reads the TypeSafe key
+
+    @patch("veltiosi.indexing.jev_client.requests")
+    def test_falls_back_to_openrouter_when_native_fails(self, mock_requests, monkeypatch):
+        def fake_post(url, **kw):
+            if "api.typesafe.ai" in url:
+                return _resp(500, {"error": "native down"})
+            return _resp(200, {"answers": GOOD_ANSWERS})
+
+        mock_requests.post.side_effect = fake_post
+        monkeypatch.setenv("TYPESAFE_API_KEY", "ts-key")
+        monkeypatch.setenv("OPENROUTER_API_KEY", "or-key")
+        c = JevClient(enabled=True)
+        ans = c.decide("state", {"root": {"type": "choice"}})
+        assert ans == GOOD_ANSWERS
+        assert c.last_provider == "openrouter"
